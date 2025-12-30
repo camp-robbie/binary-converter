@@ -1308,8 +1308,10 @@ System.out.println(b);  <span style="color:#ef4444">// -128</span>
   function increment() {
     const current = bitsToSigned(bits);
     if (current === MAX) {
-      showAlert('danger', '💥 오버플로우!',
-              `7(0111) + 1 = 8(1000)<br>하지만 8은 "8 - 16 = <strong>-8</strong>"로 해석돼요!`);
+      showAlert('danger', '오버플로우!',
+              `7(0111) + 1 = 8(1000)<br>
+               하지만 8은 "8 - 16 = -8" 로 해석돼요!`
+      );
       animateOverflow();
     }
 
