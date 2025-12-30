@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2의 보수 시각화 - 컴퓨터는 음수를 어떻게 표현할까?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f1a 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    /* 헤더 */
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 25px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      color: #a78bfa;
+      margin: 30px 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2::before {
+      content: '';
+      flex: 0 0 4px;
+      height: 24px;
+      background: linear-gradient(180deg, #a78bfa, #f472b6);
+      border-radius: 2px;
+    }
+
+    .subtitle {
+      color: #a0a0b0;
+      font-size: 1rem;
+    }
+
+    /* 핵심 메시지 */
+    .key-message {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%);
+      border: 2px solid rgba(251, 191, 36, 0.4);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .key-message p {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fbbf24;
+    }
+
+    .key-message span {
+      display: block;
+      font-size: 0.9rem;
+      color: #a0a0b0;
+      margin-top: 8px;
+      font-weight: 400;
+    }
+
+    /* 비트 섹션 */
+    .bit-section {
+      background: rgba(30, 30, 50, 0.8);
+      border-radius: 20px;
+      padding: 25px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .bit-section.overflow {
+      animation: shake 0.5s ease-in-out;
+      box-shadow: 0 0 40px rgba(239, 68, 68, 0.5);
+      border-color: rgba(239, 68, 68, 0.6);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .bit-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 0.8rem;
+    }
+
+    .msb-label {
+      color: #f97316;
+      font-weight: 700;
+    }
+
+    .lsb-label {
+      color: #64748b;
+    }
+
+    /* 비트 박스들 */
+    .bit-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .bit-box {
+      width: 65px;
+      height: 80px;
+      border: 3px solid rgba(139, 92, 246, 0.4);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(20, 20, 40, 0.8);
+      position: relative;
+      user-select: none;
+    }
+
+    .bit-box:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+    }
+
+    .bit-box.msb.zero {
+      border-color: #22c55e;
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+    }
+
+    .bit-box.msb.one {
+      border-color: #ef4444;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
+    }
+
+    .bit-box.one:not(.msb) {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%);
+      border-color: rgba(139, 92, 246, 0.6);
+    }
+
+    .bit-value {
+      font-size: 2rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: #fff;
+    }
+
+    .bit-index {
+      position: absolute;
+      bottom: 5px;
+      font-size: 0.65rem;
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .bit-power {
+      position: absolute;
+      top: -22px;
+      font-size: 0.7rem;
+      color: #8b5cf6;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .bit-box.msb .bit-power {
+      color: #f97316;
+    }
+
+    /* 값 해석 비교 */
+    .interpretation-compare {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 15px;
+      align-items: center;
+      margin: 20px 0;
+      padding: 20px;
+      background: rgba(20, 20, 40, 0.6);
+      border-radius: 15px;
+    }
+
+    .interp-card {
+      text-align: center;
+      padding: 15px;
+      border-radius: 12px;
+    }
+
+    .interp-card.unsigned {
+      background: rgba(100, 116, 139, 0.2);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+    }
+
+    .interp-card.signed {
+      border: 2px solid;
+    }
+
+    .interp-card.signed.positive {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.5);
+    }
+
+    .interp-card.signed.negative {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .interp-label {
+      font-size: 0.8rem;
+      color: #a0a0b0;
+      margin-bottom: 5px;
+    }
+
+    .interp-value {
+      font-size: 2.5rem;
+      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .interp-value.muted { color: #64748b; }
+    .interp-value.positive { color: #22c55e; }
+    .interp-value.negative { color: #ef4444; }
+
+    .interp-arrow {
+      font-size: 1.5rem;
+      color: #8b5cf6;
+    }
+
+    .interp-formula {
+      font-size: 0.85rem;
+      margin-top: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* 공식 시각화 섹션 */
+    .formula-section {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 20px;
+      padding: 25px;
+      margin: 25px 0;
+    }
+
+    .formula-title {
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #a78bfa;
+      margin-bottom: 20px;
+    }
+
+    .formula-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+      padding: 20px;
+      background: rgba(20, 20, 40, 0.8);
+      border-radius: 15px;
+    }
+
+    .formula-part {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .formula-num {
+      font-size: 2.5rem;
+      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .formula-num.unsigned { color: #64748b; }
+    .formula-num.subtract { color: #f97316; }
+    .formula-num.total { color: #8b5cf6; }
+    .formula-num.result { color: #ef4444; }
+    .formula-num.result.positive { color: #22c55e; }
+
+    .formula-desc {
+      font-size: 0.75rem;
+      color: #a0a0b0;
+      text-align: center;
+    }
+
+    .formula-op {
+      font-size: 2rem;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* 숫자선 시각화 */
+    .numberline-section {
+      margin: 25px 0;
+    }
+
+    .numberline-container {
+      position: relative;
+      padding: 60px 20px 40px;
+      background: rgba(20, 20, 40, 0.6);
+      border-radius: 15px;
+      overflow-x: auto;
+    }
+
+    .numberline {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 0;
+      min-width: fit-content;
+      position: relative;
+    }
+
+    .nl-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 45px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .nl-item:hover {
+      transform: translateY(-3px);
+    }
+
+    .nl-unsigned {
+      font-size: 0.7rem;
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 3px;
+    }
+
+    .nl-bar {
+      width: 36px;
+      border-radius: 6px 6px 0 0;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 5px;
+      min-height: 30px;
+    }
+
+    .nl-bar.positive {
+      background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+    }
+
+    .nl-bar.negative {
+      background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .nl-bar.zero {
+      background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+    }
+
+    .nl-bar.active {
+      box-shadow: 0 0 20px currentColor;
+      transform: scaleX(1.1);
+    }
+
+    .nl-signed {
+      font-size: 0.85rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: #fff;
+    }
+
+    .nl-binary {
+      font-size: 0.65rem;
+      color: #a0a0b0;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 8px;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      height: 40px;
+    }
+
+    .nl-baseline {
+      position: absolute;
+      bottom: 75px;
+      left: 20px;
+      right: 20px;
+      height: 2px;
+      background: rgba(139, 92, 246, 0.4);
+    }
+
+    .nl-zone-label {
+      position: absolute;
+      top: 15px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 5px 15px;
+      border-radius: 20px;
+    }
+
+    .nl-zone-label.positive {
+      right: 20px;
+      color: #22c55e;
+      background: rgba(34, 197, 94, 0.15);
+    }
+
+    .nl-zone-label.negative {
+      left: 20px;
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+    .nl-divider {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .nl-divider-line {
+      width: 2px;
+      height: 100px;
+      background: linear-gradient(180deg, #f97316, transparent);
+    }
+
+    .nl-divider-label {
+      font-size: 0.75rem;
+      color: #f97316;
+      white-space: nowrap;
+    }
+
+    /* 원형 다이어그램 */
+    .circle-section {
+      margin: 30px 0;
+    }
+
+    .circle-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      background: rgba(20, 20, 40, 0.6);
+      border-radius: 20px;
+    }
+
+    .number-circle {
+      position: relative;
+      width: 300px;
+      height: 300px;
+    }
+
+    .circle-bg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(
+              from 270deg,
+              rgba(34, 197, 94, 0.2) 0deg 180deg,
+              rgba(239, 68, 68, 0.2) 180deg 360deg
+      );
+      border: 3px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .circle-number {
+      position: absolute;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      transform: translate(-50%, -50%);
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(30, 30, 50, 0.8);
+    }
+
+    .circle-number:hover {
+      transform: translate(-50%, -50%) scale(1.15);
+      z-index: 10;
+    }
+
+    .circle-number.positive { color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .circle-number.negative { color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .circle-number.active {
+      background: linear-gradient(135deg, #8b5cf6, #a855f7);
+      color: #fff !important;
+      border: none;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+    }
+
+    .circle-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      background: rgba(20, 20, 40, 0.95);
+      padding: 15px;
+      border-radius: 50%;
+      width: 110px;
+      height: 110px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(139, 92, 246, 0.4);
+    }
+
+    .circle-center-value {
+      font-size: 1.8rem;
+      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .circle-center-binary {
+      font-size: 0.7rem;
+      color: #a0a0b0;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 2px;
+    }
+
+    .circle-zone-label {
+      position: absolute;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+
+    .zone-positive {
+      right: -15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #22c55e;
+      background: rgba(34, 197, 94, 0.2);
+    }
+
+    .zone-negative {
+      left: -15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    .circle-arrow {
+      position: absolute;
+      font-size: 1.3rem;
+      color: #8b5cf6;
+    }
+
+    .arrow-cw {
+      top: -5px;
+      right: 40%;
+    }
+
+    .circle-description {
+      margin-top: 20px;
+      text-align: center;
+      color: #c0c0d0;
+      font-size: 0.95rem;
+      max-width: 400px;
+      line-height: 1.7;
+    }
+
+    /* 컨트롤 버튼 */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: 'Noto Sans KR', sans-serif;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #a0a0b0;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-icon {
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+
+    /* 빠른 이동 버튼 */
+    .quick-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      padding: 15px;
+      background: rgba(30, 30, 50, 0.4);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .quick-label {
+      color: #64748b;
+      font-size: 0.85rem;
+      width: 100%;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    .quick-btn {
+      padding: 8px 14px;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 8px;
+      background: rgba(40, 40, 70, 0.6);
+      color: #c0c0d0;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.2s ease;
+    }
+
+    .quick-btn:hover {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.5);
+    }
+
+    .quick-btn.highlight {
+      border-color: #f97316;
+      color: #f97316;
+    }
+
+    /* 알림 박스 */
+    .alert {
+      display: flex;
+      gap: 12px;
+      padding: 18px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      align-items: flex-start;
+    }
+
+    .alert.warning {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+    }
+
+    .alert.danger {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      animation: pulse 0.5s ease;
+    }
+
+    .alert.info {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .alert-icon { font-size: 1.3rem; }
+    .alert-content { flex: 1; line-height: 1.6; }
+    .alert-content strong { display: block; margin-bottom: 5px; }
+
+    /* 왜 16을 빼는가 설명 */
+    .why-subtract-section {
+      background: rgba(30, 30, 50, 0.8);
+      border-radius: 20px;
+      padding: 25px;
+      margin: 25px 0;
+      border: 2px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .subtract-visual {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .subtract-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 15px;
+      background: rgba(20, 20, 40, 0.6);
+      border-radius: 12px;
+    }
+
+    .subtract-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 15px;
+      border-radius: 10px;
+      min-width: 80px;
+    }
+
+    .subtract-item.binary {
+      background: rgba(139, 92, 246, 0.2);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+
+    .subtract-item.unsigned {
+      background: rgba(100, 116, 139, 0.2);
+    }
+
+    .subtract-item.boundary {
+      background: rgba(247, 151, 22, 0.2);
+      border: 1px solid rgba(247, 151, 22, 0.4);
+    }
+
+    .subtract-item.result {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .subtract-item.result.positive {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .subtract-val {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .subtract-label {
+      font-size: 0.7rem;
+      color: #a0a0b0;
+      margin-top: 3px;
+    }
+
+    .subtract-op {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .analogy-box {
+      display: flex;
+      gap: 15px;
+      padding: 20px;
+      background: rgba(139, 92, 246, 0.1);
+      border-radius: 12px;
+      margin: 20px 0;
+      align-items: flex-start;
+    }
+
+    .analogy-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+
+    .analogy-content {
+      flex: 1;
+    }
+
+    .analogy-content h4 {
+      color: #a78bfa;
+      margin-bottom: 8px;
+    }
+
+    /* 설명 카드 */
+    .card {
+      background: rgba(30, 30, 50, 0.7);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      margin-bottom: 12px;
+    }
+
+    .card.highlight {
+      border: 2px solid rgba(251, 191, 36, 0.5);
+    }
+
+    .card-header {
+      width: 100%;
+      padding: 16px 20px;
+      border: none;
+      background: transparent;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      text-align: left;
+      font-size: 0.95rem;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    .card-title { font-weight: 700; }
+
+    .card-toggle {
+      transition: transform 0.3s ease;
+      color: #8b5cf6;
+    }
+
+    .card-toggle.open { transform: rotate(180deg); }
+
+    .card-body {
+      padding: 0 20px 20px;
+      border-top: 1px solid rgba(139, 92, 246, 0.1);
+      padding-top: 15px;
+      line-height: 1.8;
+      color: #c0c0d0;
+    }
+
+    /* 푸터 */
+    footer {
+      margin-top: 35px;
+      padding: 25px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .summary-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .summary-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 15px;
+      background: rgba(30, 30, 50, 0.6);
+      border-radius: 10px;
+    }
+
+    .summary-num {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #8b5cf6, #a855f7);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .final-quote {
+      margin-top: 20px;
+      padding: 20px;
+      background: rgba(34, 197, 94, 0.1);
+      border-radius: 12px;
+      text-align: center;
+      font-size: 1rem;
+      line-height: 1.7;
+      border-left: 4px solid #22c55e;
+    }
+
+    .final-quote strong { color: #22c55e; }
+
+    code {
+      background: rgba(139, 92, 246, 0.25);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9em;
+    }
+
+    /* 반응형 */
+    @media (max-width: 600px) {
+      h1 { font-size: 1.4rem; }
+      .bit-box { width: 50px; height: 65px; }
+      .bit-value { font-size: 1.6rem; }
+      .formula-num { font-size: 1.8rem; }
+      .number-circle { width: 250px; height: 250px; }
+      .interpretation-compare { grid-template-columns: 1fr; gap: 10px; }
+      .interp-arrow { transform: rotate(90deg); }
+      .nl-item { width: 38px; }
+      .nl-bar { width: 30px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <!-- 헤더 -->
+  <header>
+    <h1>🔢 컴퓨터는 음수를 어떻게 표현할까?</h1>
+    <p class="subtitle">4비트로 배우는 2의 보수 체계</p>
+  </header>
+
+  <!-- 핵심 메시지 -->
+  <div class="key-message">
+    <p>💡 "MSB가 1이면 음수" — 이건 자연법칙이 아니라 <u>약속</u>입니다!</p>
+    <span>그리고 그 약속에는 아주 똑똑한 이유가 있어요</span>
+  </div>
+
+  <!-- 비트 인터랙션 섹션 -->
+  <section class="bit-section" id="bitSection">
+    <div class="bit-labels">
+      <span class="msb-label">← MSB (부호 비트)</span>
+      <span class="lsb-label">LSB →</span>
+    </div>
+
+    <div class="bit-container" id="bitContainer"></div>
+
+    <!-- 해석 비교 -->
+    <div class="interpretation-compare">
+      <div class="interp-card unsigned">
+        <div class="interp-label">그냥 읽으면 (unsigned)</div>
+        <div class="interp-value muted" id="unsignedValue">0</div>
+      </div>
+      <div class="interp-arrow" id="interpArrow">→</div>
+      <div class="interp-card signed" id="signedCard">
+        <div class="interp-label" id="signedLabel">약속대로 읽으면 (signed)</div>
+        <div class="interp-value" id="signedValue">0</div>
+        <div class="interp-formula" id="interpFormula"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="btn btn-primary" onclick="decrement()">
+      <span class="btn-icon">−</span>
+      <span>1 빼기</span>
+    </button>
+    <button class="btn btn-secondary" onclick="reset()">🔄 초기화</button>
+    <button class="btn btn-primary" onclick="increment()">
+      <span class="btn-icon">+</span>
+      <span>1 더하기</span>
+    </button>
+  </div>
+
+  <div class="quick-buttons">
+    <span class="quick-label">🎯 직접 눌러보세요</span>
+    <button class="quick-btn" onclick="setValue(0)">0</button>
+    <button class="quick-btn" onclick="setValue(7)">7 (최대 양수)</button>
+    <button class="quick-btn highlight" onclick="setValue(-8)">-8 (= 8 - 16)</button>
+    <button class="quick-btn" onclick="setValue(-1)">-1 (= 15 - 16)</button>
+  </div>
+
+  <!-- 알림 영역 -->
+  <div id="alertArea"></div>
+
+  <!-- 왜 16을 빼는가? 핵심 시각화 -->
+  <section class="why-subtract-section">
+    <h2>🤔 왜 "8 - 16 = -8" 인가요?</h2>
+
+    <p>4비트로 표현할 수 있는 패턴은 총 <strong>16개</strong>예요 (0000 ~ 1111).<br>
+      그런데 우리는 음수도 표현하고 싶잖아요?</p>
+
+    <div class="analogy-box">
+      <span class="analogy-icon">💡</span>
+      <div class="analogy-content">
+        <h4>핵심 아이디어</h4>
+        <p>16개 중 <strong>절반(8~15)을 음수로 쓰자!</strong><br>
+          대신 "진짜 값에서 16을 뺀 것"으로 해석하자고 약속한 거예요.</p>
+      </div>
+    </div>
+
+    <div class="subtract-visual" id="subtractVisual">
+      <!-- JS로 동적 생성 -->
+    </div>
+
+    <div class="analogy-box">
+      <span class="analogy-icon">🕐</span>
+      <div class="analogy-content">
+        <h4>시계 비유</h4>
+        <p>시계에서 12시 + 1시간 = <strong>13시가 아니라 1시</strong>죠?<br>
+          마찬가지로 4비트에서 7 + 1 = 8인데, 이걸 <strong>"8 - 16 = -8"</strong>로 해석해요.<br>
+          한 바퀴(16) 돌아서 반대편으로 간 거예요!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 숫자선 시각화 -->
+  <section class="numberline-section">
+    <h2>📊 16개의 비트 패턴, 두 가지 해석</h2>
+
+    <div class="numberline-container">
+      <div class="nl-zone-label negative">🔴 음수 영역<br><small>8~15 → -8~-1</small></div>
+      <div class="nl-zone-label positive">🟢 양수 영역<br><small>0~7 그대로</small></div>
+      <div class="numberline" id="numberline"></div>
+      <div class="nl-baseline"></div>
+    </div>
+
+    <div class="alert info" style="margin-top:15px;">
+      <span class="alert-icon">👆</span>
+      <div class="alert-content">
+        <strong>막대를 클릭해보세요!</strong>
+        <p>unsigned 8~15는 signed로 해석하면 -8~-1이 됩니다.<br>
+          공식: <code>signed = unsigned - 16</code> (MSB가 1일 때)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 공식 시각화 -->
+  <section class="formula-section">
+    <div class="formula-title">🧮 현재 값의 변환 공식</div>
+    <div class="formula-box" id="formulaBox">
+      <!-- JS로 동적 생성 -->
+    </div>
+  </section>
+
+  <!-- 원형 다이어그램 -->
+  <section class="circle-section">
+    <h2>🔄 원형으로 보면 더 쉬워요</h2>
+
+    <div class="circle-container">
+      <div class="number-circle">
+        <div class="circle-bg"></div>
+        <div class="circle-zone-label zone-positive">양수</div>
+        <div class="circle-zone-label zone-negative">음수</div>
+        <span class="circle-arrow arrow-cw">↻ +1</span>
+        <div id="circleNumbers"></div>
+        <div class="circle-center">
+          <div class="circle-center-value" id="centerValue">0</div>
+          <div class="circle-center-binary" id="centerBinary">0000</div>
+        </div>
+      </div>
+
+      <p class="circle-description">
+        숫자들이 <strong>원형으로 연결</strong>되어 있어요!<br>
+        7에서 +1하면 8이 되는데, 8은 "한 바퀴(16) 빼서" <strong>-8</strong>이 돼요.<br>
+        <br>
+        <span style="color:#f97316;">⚡ 이게 바로 오버플로우!</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- 추가 설명 카드 -->
+  <section>
+    <h2>📚 더 알아보기</h2>
+
+    <div class="card highlight">
+      <button class="card-header" onclick="toggleCard(0)">
+        <span class="card-title">🎯 왜 하필 "16을 빼는" 방식일까요?</span>
+        <span class="card-toggle" id="toggle0">▼</span>
+      </button>
+      <div class="card-body" id="body0" style="display:none;">
+        <p><strong>덧셈 회로 하나로 뺄셈도 되게 하려고!</strong></p>
+        <p>2의 보수 방식을 쓰면, 컴퓨터는 음수를 몰라도 돼요.<br>
+          그냥 덧셈만 하면 뺄셈이 자동으로 되거든요.</p>
+        <div style="background:rgba(20,20,40,0.6); padding:15px; border-radius:10px; margin:15px 0; font-family:'JetBrains Mono',monospace;">
+          <div>예: 5 + (-3) = 2</div>
+          <div style="margin-top:10px;">
+            <span style="color:#22c55e;">0101</span> (5)<br>
+            + <span style="color:#ef4444;">1101</span> (-3 = 13 - 16)<br>
+            ─────<br>
+            <span style="color:#8b5cf6;">10010</span> → 앞 1 버리면 <span style="color:#22c55e;">0010</span> (2) ✓
+          </div>
+        </div>
+        <p>하드웨어를 단순하게 만드는 천재적인 트릭이에요!</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <button class="card-header" onclick="toggleCard(1)">
+        <span class="card-title">☕ Java에서 확인해보기</span>
+        <span class="card-toggle" id="toggle1">▼</span>
+      </button>
+      <div class="card-body" id="body1" style="display:none;">
+          <pre style="background:rgba(20,20,40,0.9); padding:18px; border-radius:10px; font-family:'JetBrains Mono',monospace; font-size:0.85rem; overflow-x:auto;">
+<span style="color:#64748b">// Java byte는 8비트 signed: -128 ~ 127</span>
+byte b = 127;
+System.out.println(b);  <span style="color:#22c55e">// 127</span>
+
+b++;  <span style="color:#64748b">// +1 하면?</span>
+System.out.println(b);  <span style="color:#ef4444">// -128</span>
+
+<span style="color:#64748b">// 왜? 128 - 256 = -128</span>
+<span style="color:#64748b">// unsigned 128을 signed로 해석!</span></pre>
+        <p style="margin-top:15px; color:#fbbf24;">💡 직접 실행해보세요!</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <button class="card-header" onclick="toggleCard(2)">
+        <span class="card-title">⚠️ 오버플로우는 버그가 아니다?</span>
+        <span class="card-toggle" id="toggle2">▼</span>
+      </button>
+      <div class="card-body" id="body2" style="display:none;">
+        <p><strong>컴퓨터는 정확히 계산했어요!</strong></p>
+        <ul style="margin:15px 0; padding-left:25px;">
+          <li><code>0111</code> + 1 = <code>1000</code> ← 정확한 이진 덧셈</li>
+          <li>다만 우리가 <code>1000</code>을 "-8"로 해석할 뿐</li>
+          <li>오버플로우는 "에러"가 아니라 <strong>"해석의 전환점"</strong></li>
+        </ul>
+        <div style="background:rgba(34,197,94,0.15); padding:15px; border-radius:10px; border-left:4px solid #22c55e;">
+          💡 버그가 되는 건, 프로그래머가 이 범위를 <strong>고려하지 않았을 때</strong>예요!
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 푸터 -->
+  <footer>
+    <h3 class="summary-title">✅ 핵심 정리</h3>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <span class="summary-num">1</span>
+        <span>4비트 = 16개 패턴 → <strong>절반을 음수로 약속</strong></span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-num">2</span>
+        <span>MSB가 1이면: <code>signed = unsigned - 16</code></span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-num">3</span>
+        <span>그래서 <code>1000</code>(8) → <strong>8 - 16 = -8</strong></span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-num">4</span>
+        <span>오버플로우 = 양수 → 음수 경계를 넘는 것</span>
+      </div>
+    </div>
+    <div class="final-quote">
+      "아! <code>1000</code>이 -8인 건<br>
+      <strong>8에서 한 바퀴(16)를 빼는 약속</strong> 때문이구나!"
+    </div>
+  </footer>
+</div>
+
+<script>
+  // ============================================
+  // 2의 보수 시각화 - 개선판
+  // "왜 8 - 16 = -8인가"를 직관적으로!
+  // ============================================
+
+  let bits = [0, 0, 0, 0];
+  const TOTAL = 16;  // 2^4
+  const MIN = -8;
+  const MAX = 7;
+
+  // 초기화
+  function init() {
+    renderBits();
+    renderNumberline();
+    renderCircleNumbers();
+    updateDisplay();
+  }
+
+  // 비트 박스 렌더링
+  function renderBits() {
+    const container = document.getElementById('bitContainer');
+    container.innerHTML = '';
+
+    const powers = ['−8', '4', '2', '1'];
+
+    bits.forEach((bit, i) => {
+      const box = document.createElement('div');
+      const isMsb = i === 0;
+      box.className = `bit-box ${isMsb ? 'msb' : ''} ${bit === 1 ? 'one' : 'zero'}`;
+      box.onclick = () => toggleBit(i);
+
+      box.innerHTML = `
+          <span class="bit-power">${powers[i]}</span>
+          <span class="bit-value">${bit}</span>
+          <span class="bit-index">[${3-i}]</span>
+        `;
+
+      container.appendChild(box);
+    });
+  }
+
+  // 숫자선 렌더링
+  function renderNumberline() {
+    const container = document.getElementById('numberline');
+    container.innerHTML = '';
+
+    // 0~15 순서대로, 왼쪽이 음수(8~15), 오른쪽이 양수(0~7)
+    // 시각적으로: -8, -7, ..., -1, 0, 1, ..., 7
+    const order = [-8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
+
+    order.forEach(signed => {
+      const unsigned = signed < 0 ? signed + 16 : signed;
+      const binary = unsigned.toString(2).padStart(4, '0');
+      const height = Math.abs(signed) * 12 + 30;
+
+      const item = document.createElement('div');
+      item.className = 'nl-item';
+      item.onclick = () => setValue(signed);
+      item.id = `nl-${signed}`;
+
+      let barClass = 'nl-bar';
+      if (signed > 0) barClass += ' positive';
+      else if (signed < 0) barClass += ' negative';
+      else barClass += ' zero';
+
+      item.innerHTML = `
+          <span class="nl-unsigned">${unsigned}</span>
+          <div class="${barClass}" style="height:${height}px;">
+            <span class="nl-signed">${signed}</span>
+          </div>
+          <span class="nl-binary">${binary}</span>
+        `;
+
+      container.appendChild(item);
+    });
+  }
+
+  // 원형 다이어그램
+  function renderCircleNumbers() {
+    const container = document.getElementById('circleNumbers');
+    container.innerHTML = '';
+
+    // 0부터 시계방향: 0,1,2,...,7,-8,-7,...,-1
+    const numbers = [0, 1, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -1];
+    const radius = 125;
+
+    numbers.forEach((num, i) => {
+      const angle = (i / 16) * 2 * Math.PI - Math.PI / 2;
+      const x = 150 + radius * Math.cos(angle);
+      const y = 150 + radius * Math.sin(angle);
+
+      const span = document.createElement('span');
+      span.className = `circle-number ${num >= 0 ? 'positive' : 'negative'}`;
+      span.style.left = `${x}px`;
+      span.style.top = `${y}px`;
+
+      const unsigned = num < 0 ? num + 16 : num;
+      span.innerHTML = `${num}<br><small style="font-size:0.6rem;opacity:0.6">${unsigned}</small>`;
+      span.onclick = () => setValue(num);
+      span.id = `circle-${num}`;
+
+      container.appendChild(span);
+    });
+  }
+
+  // 비트 토글
+  function toggleBit(index) {
+    bits[index] = 1 - bits[index];
+    updateDisplay();
+  }
+
+  // +1
+  function increment() {
+    const current = bitsToSigned(bits);
+    if (current === MAX) {
+      showAlert('danger', '💥 오버플로우!',
+              `7(0111) + 1 = 8(1000)<br>하지만 8은 "8 - 16 = <strong>-8</strong>"로 해석돼요!`);
+      animateOverflow();
+    }
+
+    let unsigned = bitsToUnsigned(bits);
+    unsigned = (unsigned + 1) % 16;
+    bits = unsignedToBits(unsigned);
+    updateDisplay();
+  }
+
+  // -1
+  function decrement() {
+    const current = bitsToSigned(bits);
+    if (current === MIN) {
+      showAlert('warning', '🔄 언더플로우!',
+              `-8(1000) - 1 = 7(0111)<br>반대 방향으로 한 바퀴!`);
+      animateOverflow();
+    }
+
+    let unsigned = bitsToUnsigned(bits);
+    unsigned = (unsigned - 1 + 16) % 16;
+    bits = unsignedToBits(unsigned);
+    updateDisplay();
+  }
+
+  // 값 설정
+  function setValue(value) {
+    bits = unsignedToBits(value < 0 ? value + 16 : value);
+    updateDisplay();
+    hideAlert();
+  }
+
+  // 리셋
+  function reset() {
+    bits = [0, 0, 0, 0];
+    updateDisplay();
+    hideAlert();
+  }
+
+  // 화면 업데이트
+  function updateDisplay() {
+    renderBits();
+
+    const signed = bitsToSigned(bits);
+    const unsigned = bitsToUnsigned(bits);
+    const isNegative = bits[0] === 1;
+    const binary = bits.join('');
+
+    // Unsigned / Signed 값
+    document.getElementById('unsignedValue').textContent = unsigned;
+
+    const signedEl = document.getElementById('signedValue');
+    signedEl.textContent = signed;
+    signedEl.className = `interp-value ${isNegative ? 'negative' : 'positive'}`;
+
+    // Signed 카드 스타일
+    const signedCard = document.getElementById('signedCard');
+    signedCard.className = `interp-card signed ${isNegative ? 'negative' : 'positive'}`;
+
+    // 공식 표시
+    const formulaEl = document.getElementById('interpFormula');
+    if (isNegative) {
+      formulaEl.innerHTML = `<span style="color:#64748b">${unsigned}</span> − <span style="color:#f97316">16</span> = <span style="color:#ef4444">${signed}</span>`;
+    } else {
+      formulaEl.innerHTML = `<span style="color:#22c55e">양수는 그대로!</span>`;
+    }
+
+    // 화살표
+    document.getElementById('interpArrow').textContent = isNegative ? '−16 →' : '= →';
+
+    // 변환 공식 박스
+    updateFormulaBox(unsigned, signed, isNegative, binary);
+
+    // 빼기 시각화
+    updateSubtractVisual(unsigned, signed, isNegative, binary);
+
+    // 숫자선 하이라이트
+    document.querySelectorAll('.nl-item').forEach(el => {
+      el.querySelector('.nl-bar').classList.remove('active');
+    });
+    const nlItem = document.getElementById(`nl-${signed}`);
+    if (nlItem) nlItem.querySelector('.nl-bar').classList.add('active');
+
+    // 원형 다이어그램
+    document.getElementById('centerValue').textContent = signed;
+    document.getElementById('centerValue').style.color = isNegative ? '#ef4444' : '#22c55e';
+    document.getElementById('centerBinary').textContent = binary;
+
+    document.querySelectorAll('.circle-number').forEach(el => el.classList.remove('active'));
+    const circleEl = document.getElementById(`circle-${signed}`);
+    if (circleEl) circleEl.classList.add('active');
+
+    // 경계 경고
+    if (signed === MAX) {
+      showAlert('warning', '⚠️ 양수 최대값!',
+              `여기서 +1하면 오버플로우!<br>0111 + 1 = 1000 → 8 - 16 = <strong>-8</strong>`);
+    }
+  }
+
+  // 공식 박스 업데이트
+  function updateFormulaBox(unsigned, signed, isNegative, binary) {
+    const box = document.getElementById('formulaBox');
+
+    if (isNegative) {
+      box.innerHTML = `
+          <div class="formula-part">
+            <span class="formula-num unsigned">${unsigned}</span>
+            <span class="formula-desc">unsigned 값</span>
+          </div>
+          <span class="formula-op">−</span>
+          <div class="formula-part">
+            <span class="formula-num total">16</span>
+            <span class="formula-desc">2⁴ (한 바퀴)</span>
+          </div>
+          <span class="formula-op">=</span>
+          <div class="formula-part">
+            <span class="formula-num result">${signed}</span>
+            <span class="formula-desc">signed 값</span>
+          </div>
+        `;
+    } else {
+      box.innerHTML = `
+          <div class="formula-part">
+            <span class="formula-num result positive">${signed}</span>
+            <span class="formula-desc">MSB가 0이면<br>그대로 양수!</span>
+          </div>
+        `;
+    }
+  }
+
+  // 빼기 시각화 업데이트
+  function updateSubtractVisual(unsigned, signed, isNegative, binary) {
+    const container = document.getElementById('subtractVisual');
+
+    if (isNegative) {
+      container.innerHTML = `
+          <div class="subtract-row">
+            <div class="subtract-item binary">
+              <span class="subtract-val" style="color:#a78bfa">${binary}</span>
+              <span class="subtract-label">이진수</span>
+            </div>
+            <span class="subtract-op">=</span>
+            <div class="subtract-item unsigned">
+              <span class="subtract-val" style="color:#64748b">${unsigned}</span>
+              <span class="subtract-label">그냥 읽으면</span>
+            </div>
+            <span class="subtract-op">−</span>
+            <div class="subtract-item boundary">
+              <span class="subtract-val" style="color:#f97316">16</span>
+              <span class="subtract-label">한 바퀴 (2⁴)</span>
+            </div>
+            <span class="subtract-op">=</span>
+            <div class="subtract-item result">
+              <span class="subtract-val" style="color:#ef4444">${signed}</span>
+              <span class="subtract-label">signed 해석</span>
+            </div>
+          </div>
+        `;
+    } else {
+      container.innerHTML = `
+          <div class="subtract-row">
+            <div class="subtract-item binary">
+              <span class="subtract-val" style="color:#a78bfa">${binary}</span>
+              <span class="subtract-label">이진수</span>
+            </div>
+            <span class="subtract-op">=</span>
+            <div class="subtract-item result positive">
+              <span class="subtract-val" style="color:#22c55e">${signed}</span>
+              <span class="subtract-label">MSB=0 → 양수 그대로!</span>
+            </div>
+          </div>
+        `;
+    }
+  }
+
+  // 유틸리티
+  function bitsToSigned(b) {
+    if (b[0] === 1) return -8 + b[1]*4 + b[2]*2 + b[3]*1;
+    return b[1]*4 + b[2]*2 + b[3]*1;
+  }
+
+  function bitsToUnsigned(b) {
+    return b[0]*8 + b[1]*4 + b[2]*2 + b[3]*1;
+  }
+
+  function unsignedToBits(n) {
+    return [(n>>3)&1, (n>>2)&1, (n>>1)&1, n&1];
+  }
+
+  function showAlert(type, title, message) {
+    document.getElementById('alertArea').innerHTML = `
+        <div class="alert ${type}">
+          <span class="alert-icon">${type === 'danger' ? '💥' : '⚠️'}</span>
+          <div class="alert-content">
+            <strong>${title}</strong>
+            <p>${message}</p>
+          </div>
+        </div>
+      `;
+  }
+
+  function hideAlert() {
+    document.getElementById('alertArea').innerHTML = '';
+  }
+
+  function animateOverflow() {
+    const section = document.getElementById('bitSection');
+    section.classList.add('overflow');
+    setTimeout(() => section.classList.remove('overflow'), 500);
+  }
+
+  function toggleCard(index) {
+    const body = document.getElementById(`body${index}`);
+    const toggle = document.getElementById(`toggle${index}`);
+
+    if (body.style.display === 'none') {
+      body.style.display = 'block';
+      toggle.classList.add('open');
+    } else {
+      body.style.display = 'none';
+      toggle.classList.remove('open');
+    }
+  }
+
+  // 시작
+  init();
+</script>
+</body>
+</html>
